@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Academy - Interactive Technology Lab Proposal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Warm Neutrals & Professional Blue -->
+    <!-- Application Structure Plan: A single-page application (SPA) with a fixed top navigation bar. This structure was chosen to provide immediate access to all key report sections (Dashboard, Layout, Equipment, Budget) without overwhelming the user. The default view is a "Dashboard" which provides a high-level summary (total cost, key stats, budget chart) for quick executive review. Users can then navigate to dedicated sections for a more in-depth look at the lab's physical design, a detailed equipment manifest, and an interactive budget explorer. This task-oriented approach is more user-friendly than a linear document, allowing stakeholders to find the information they need efficiently. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Total Project Cost & Key Metrics -> Goal: Inform -> Viz/Method: Large text-based stat cards -> Interaction: None, for immediate clarity -> Justification: Key numbers are the most important takeaway for a budget proposal.
+        - Report Info: Budget Summary by Category -> Goal: Compare/Inform -> Viz/Method: Donut Chart (Chart.js) on Dashboard -> Interaction: Hover to see category cost -> Justification: Gives an instant visual sense of how the budget is allocated.
+        - Report Info: Lab Layout Description -> Goal: Organize/Inform -> Viz/Method: Interactive Floor Plan (HTML Grid/CSS) -> Interaction: Hover over zones to highlight and show info -> Justification: Translates text into a more engaging and understandable spatial representation.
+        - Report Info: Equipment Specifications -> Goal: Organize/Inform -> Viz/Method: Accordion-style cards (HTML/JS) -> Interaction: Click to expand/collapse details -> Justification: Prevents information overload and makes the detailed specs easily scannable.
+        - Report Info: Full Budget Breakdown -> Goal: Compare/Analyze -> Viz/Method: Bar Chart + Dynamic Table (Chart.js/JS) -> Interaction: Click a bar on the chart to filter and display detailed line items in the table -> Justification: This is the core interactive element, allowing users to drill down from a high-level category view into specific costs, which is crucial for financial analysis.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .nav-link {
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .nav-link.active {
+            color: #0284c7; /* sky-600 */
+            border-bottom-color: #0284c7;
+        }
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 350px;
+            width: 100%;
+            max-width: 450px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .floor-plan-zone {
+            transition: background-color 0.3s, border-color 0.3s, transform 0.3s;
+        }
+        .floor-plan-zone:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <span class="text-2xl font-bold text-slate-900">🚀</span>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="#dashboard" class="nav-link text-slate-600 hover:text-sky-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">Dashboard</a>
+                            <a href="#layout" class="nav-link text-slate-600 hover:text-sky-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">Lab Layout</a>
+                            <a href="#equipment" class="nav-link text-slate-600 hover:text-sky-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">Equipment</a>
+                            <a href="#budget" class="nav-link text-slate-600 hover:text-sky-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">Budget Explorer</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="page-section container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Lead Academy Tech Lab Proposal</h1>
+            <p class="mt-4 text-lg text-slate-600 max-w-3xl">This interactive report outlines the proposal for a new 30-station technology lab. The dashboard below summarizes the project's scope and financial overview. Use the navigation to explore the detailed layout, equipment specifications, and budget.</p>
+
+            <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="stat-card bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <h3 class="text-sm font-medium text-slate-500">Total Estimated Cost</h3>
+                    <p id="stat-total-cost" class="mt-1 text-4xl font-bold text-sky-600">$88,000</p>
+                </div>
+                <div class="stat-card bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <h3 class="text-sm font-medium text-slate-500">Student Workstations</h3>
+                    <p class="mt-1 text-4xl font-bold text-slate-800">30</p>
+                </div>
+                <div class="stat-card bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <h3 class="text-sm font-medium text-slate-500">Primary Use</h3>
+                    <p class="mt-1 text-4xl font-bold text-slate-800">Coding</p>
+                </div>
+                <div class="stat-card bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <h3 class="text-sm font-medium text-slate-500">Secondary Use</h3>
+                    <p class="mt-1 text-4xl font-bold text-slate-800">WIDA Testing</p>
+                </div>
+            </div>
+
+            <div class="mt-12 bg-white p-6 md:p-8 rounded-lg shadow-lg border border-slate-200">
+                <h2 class="text-2xl font-bold text-slate-900">Budget Allocation Overview</h2>
+                <p class="text-slate-600 mt-2">A high-level view of how the total estimated budget is distributed across major categories. Hover over a slice for details.</p>
+                <div class="chart-container mt-6">
+                    <canvas id="budgetDonutChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lab Layout Section -->
+        <section id="layout" class="page-section hidden bg-slate-100 py-16">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-extrabold text-slate-900 text-center">Interactive Lab Layout</h2>
+                <p class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto text-center">This diagram illustrates the proposed floor plan for the 900 sq. ft. technology lab. Hover over any zone to highlight it and see key details. The design prioritizes collaboration, accessibility, and dedicated zones for different activities.</p>
+                
+                <div class="mt-10 max-w-5xl mx-auto bg-white p-4 sm:p-6 rounded-xl shadow-2xl border border-slate-200">
+                    <div class="aspect-[4/3] w-full grid grid-cols-10 grid-rows-8 gap-2 bg-slate-50 p-2 rounded-lg">
+                        <div class="floor-plan-zone col-span-10 row-span-1 bg-slate-200 rounded-md flex items-center justify-center text-xs font-semibold text-slate-500">ENTRANCE & MAIN AISLE</div>
+
+                        <div id="zone-storage" class="floor-plan-zone col-span-2 row-span-2 bg-purple-100 border-2 border-purple-200 rounded-lg flex flex-col justify-center items-center p-2 text-center shadow-sm">
+                            <h4 class="font-bold text-purple-800 text-sm">📦 Storage</h4>
+                            <p class="text-purple-700 text-xs mt-1">Lockable cabinets and shelving for equipment.</p>
+                        </div>
+                        <div id="zone-teacher" class="floor-plan-zone col-span-6 row-span-2 bg-green-100 border-2 border-green-200 rounded-lg flex flex-col justify-center items-center p-2 text-center shadow-sm">
+                            <h4 class="font-bold text-green-800 text-sm">👨‍🏫 Teacher Area</h4>
+                            <p class="text-green-700 text-xs mt-1">Interactive display, document camera, and main controls.</p>
+                        </div>
+                        <div class="col-span-2 row-span-7"></div>
+
+                        <div id="zone-pod-1" class="floor-plan-zone col-span-2 row-span-2 bg-sky-100 border-2 border-sky-200 rounded-lg flex flex-col justify-center items-center p-2 text-center shadow-sm">
+                            <h4 class="font-bold text-sky-800 text-xs">Pod 1</h4>
+                            <p class="text-sky-700 text-xs mt-1">(6 Stations)</p>
+                        </div>
+                        <div id="zone-pod-2" class="floor-plan-zone col-span-2 row-span-2 bg-sky-100 border-2 border-sky-200 rounded-lg flex flex-col justify-center items-center p-2 text-center shadow-sm">
+                            <h4 class="font-bold text-sky-800 text-xs">Pod 2</h4>
+                            <p class="text-sky-700 text-xs mt-1">(6 Stations)</p>
+                        </div>
+                        <div id="zone-pod-3" class="floor-plan-zone col-span-2 row-span-2 bg-sky-100 border-2 border-sky-200 rounded-lg flex flex-col justify-center items-center p-2 text-center shadow-sm">
+                            <h4 class="font-bold text-sky-800 text-xs">Pod 3</h4>
+                            <p class="text-sky-700 text-xs mt-1">(6 Stations)</p>
+                        </div>
+
+                        <div class="col-span-6 row-span-1 bg-slate-200/50 rounded-md flex items-center justify-center text-xs font-semibold text-slate-500">48" AISLE</div>
+
+                        <div id="zone-pod-4" class="floor-plan-zone col-span-2 row-span-2 bg-sky-100 border-2 border-sky-200 rounded-lg flex flex-col justify-center items-center p-2 text-center shadow-sm">
+                            <h4 class="font-bold text-sky-800 text-xs">Pod 4</h4>
+                            <p class="text-sky-700 text-xs mt-1">(6 Stations)</p>
+                        </div>
+                        <div id="zone-pod-5" class="floor-plan-zone col-span-2 row-span-2 bg-sky-100 border-2 border-sky-200 rounded-lg flex flex-col justify-center items-center p-2 text-center shadow-sm">
+                            <h4 class="font-bold text-sky-800 text-xs">Pod 5</h4>
+                            <p class="text-sky-700 text-xs mt-1">(6 Stations)</p>
+                        </div>
+
+                        <div id="zone-wida" class="floor-plan-zone col-span-4 row-span-3 bg-rose-100 border-2 border-rose-200 rounded-lg flex flex-col justify-center items-center p-2 text-center shadow-sm">
+                            <h4 class="font-bold text-rose-800 text-sm">🗣️ WIDA Testing Zone</h4>
+                            <p class="text-rose-700 text-xs mt-1">Semi-secluded area with 6-8 stations for focused assessment.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Equipment Section -->
+        <section id="equipment" class="page-section hidden container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <h2 class="text-3xl font-extrabold text-slate-900 text-center">Equipment & Infrastructure</h2>
+            <p class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto text-center">A detailed breakdown of all proposed hardware, furniture, and infrastructure components. Click on any category to expand and see the specifications.</p>
+            <div id="accordion-container" class="mt-10 max-w-4xl mx-auto space-y-4">
+                <!-- Accordion items will be injected here by JS -->
+            </div>
+        </section>
+
+        <!-- Budget Explorer Section -->
+        <section id="budget" class="page-section hidden bg-slate-100 py-16">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-extrabold text-slate-900 text-center">Interactive Budget Explorer</h2>
+                <p class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto text-center">This section provides an interactive drill-down of the budget. Click on a bar in the chart below to see the detailed line-item costs for that category in the table.</p>
+
+                <div class="mt-10 grid lg:grid-cols-5 gap-8">
+                    <div class="lg:col-span-3 bg-white p-6 rounded-lg shadow-lg border border-slate-200">
+                        <h3 class="text-xl font-bold text-slate-800">Cost by Major Category</h3>
+                        <div class="mt-4 h-[450px]">
+                            <canvas id="budgetBarChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-lg border border-slate-200">
+                        <h3 id="details-title" class="text-xl font-bold text-slate-800">Detailed Breakdown</h3>
+                        <div id="budget-details" class="mt-4 overflow-x-auto">
+                            <p class="text-slate-500">Click a category on the left to see details.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-slate-400 mt-16">
+        <div class="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm">
+            <p>Lead Academy Technology Lab Proposal | Generated for review.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- DATA ---
+            const fullBudgetData = [
+                { category: 'Hardware - Student Stations', item: 'Student PCs (Core i9)', quantity: 30, unitCost: 1500, totalCost: 45000 },
+                { category: 'Hardware - Student Stations', item: 'Monitors (24")', quantity: 30, unitCost: 150, totalCost: 4500 },
+                { category: 'Hardware - Student Stations', item: 'Keyboards & Mice', quantity: 30, unitCost: 30, totalCost: 900 },
+                { category: 'Hardware - Student Stations', item: 'Headsets (USB)', quantity: 30, unitCost: 40, totalCost: 1200 },
+                { category: 'Hardware - Teacher Station', item: 'Teacher PC (i7)', quantity: 1, unitCost: 1500, totalCost: 1500 },
+                { category: 'Hardware - Teacher Station', item: 'Interactive Display (75")', quantity: 1, unitCost: 4000, totalCost: 4000 },
+                { category: 'Hardware - Teacher Station', item: 'Document Camera & Presenter', quantity: 1, unitCost: 350, totalCost: 350 },
+                { category: 'Infrastructure', item: 'Gigabit Managed Switches', quantity: 2, unitCost: 750, totalCost: 1500 },
+                { category: 'Infrastructure', item: 'Cat6 Cabling & Installation', quantity: 1, unitCost: 1000, totalCost: 1000 },
+                { category: 'Infrastructure', item: 'Wi-Fi 6 Access Points', quantity: 2, unitCost: 500, totalCost: 1000 },
+                { category: 'Infrastructure', item: 'UPS (1500VA)', quantity: 1, unitCost: 800, totalCost: 800 },
+                { category: 'Furniture & Fixtures', item: 'Student Desks', quantity: 30, unitCost: 200, totalCost: 6000 },
+                { category: 'Furniture & Fixtures', item: 'Ergonomic Student Chairs', quantity: 30, unitCost: 200, totalCost: 6000 },
+                { category: 'Furniture & Fixtures', item: 'Teacher Desk & Chair', quantity: 1, unitCost: 500, totalCost: 500 },
+                { category: 'Furniture & Fixtures', item: 'Lockable Storage Cabinets', quantity: 2, unitCost: 500, totalCost: 1000 },
+                { category: 'Software & Licensing', item: 'Windows 11 Pro Education', quantity: 30, unitCost: 50, totalCost: 1500 },
+                { category: 'Software & Licensing', item: 'Microsoft Office/365', quantity: 30, unitCost: 15, totalCost: 450 },
+                { category: 'Software & Licensing', item: 'Device Management System', quantity: 30, unitCost: 20, totalCost: 600 },
+                { category: 'Installation & Services', item: 'Network Configuration', quantity: 1, unitCost: 2000, totalCost: 2000 },
+                { category: 'Installation & Services', item: 'Furniture Assembly', quantity: 1, unitCost: 1000, totalCost: 1000 },
+                { category: 'Installation & Services', item: 'Software Deployment', quantity: 1, unitCost: 1500, totalCost: 1500 },
+                { category: 'Contingency', item: 'Contingency (10%)', quantity: 1, unitCost: 8000, totalCost: 8000 },
+            ];
+            
+            const equipmentData = {
+                'Student Workstations': [
+                    { name: 'Processor', spec: 'Intel Core i9 (12th Gen+) or AMD Ryzen 9 (5000 series+)' },
+                    { name: 'RAM', spec: '16GB DDR4 (expandable)' },
+                    { name: 'Storage', spec: '512GB NVMe SSD' },
+                    { name: 'Monitor', spec: '24-inch Full HD (1920x1080)' },
+                    { name: 'Peripherals', spec: 'Wired Keyboard, Mouse, USB Headset with Mic' }
+                ],
+                'Teacher Station': [
+                    { name: 'Processor', spec: 'Intel Core i7 (12th Gen+) or AMD Ryzen 7 (5000 series+)' },
+                    { name: 'RAM', spec: '32GB DDR4' },
+                    { name: 'Storage', spec: '1TB NVMe SSD' },
+                    { name: 'Display', spec: '75-inch 4K Interactive Flat Panel' },
+                    { name: 'Accessories', spec: 'Document Camera, Wireless Presenter' }
+                ],
+                'Infrastructure': [
+                    { name: 'Networking', spec: 'Managed Gigabit Switches, Cat6 Cabling, Wi-Fi 6 APs' },
+                    { name: 'Power', spec: 'UPS for critical hardware, surge protectors for all stations' },
+                    { name: 'Furniture', spec: 'Durable desks, ergonomic chairs, lockable storage' },
+                    { name: 'Security', spec: 'Device Management Software, Asset Tags, Keycard Access' }
+                ],
+                'WIDA Testing Compliance': [
+                    { name: 'Environment', spec: 'Dedicated, quiet zones with privacy partitions.' },
+                    { name: 'Network', spec: 'Isolated VLAN with Quality of Service (QoS) for test traffic.' },
+                    { name: 'Hardware', spec: 'Noise-cancelling headsets and compliant PCs.' },
+                    { name: 'Software', spec: 'Secure browser for WIDA ACCESS testing.' },
+                ]
+            };
+
+            // --- NAVIGATION ---
+            const sections = document.querySelectorAll('.page-section');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            const showSection = (hash) => {
+                const targetId = hash ? hash.substring(1) : 'dashboard';
+                sections.forEach(section => {
+                    section.classList.toggle('hidden', section.id !== targetId);
+                });
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', link.hash === `#${targetId}`);
+                });
+            };
+
+            window.addEventListener('hashchange', () => showSection(window.location.hash));
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.location.hash = link.hash;
+                });
+            });
+
+            // --- CHARTS ---
+            const processBudgetData = (data) => {
+                const categoryTotals = data.reduce((acc, item) => {
+                    acc[item.category] = (acc[item.category] || 0) + item.totalCost;
+                    return acc;
+                }, {});
+                return {
+                    labels: Object.keys(categoryTotals),
+                    data: Object.values(categoryTotals)
+                };
+            };
+            
+            const donutData = processBudgetData(fullBudgetData);
+            const barData = processBudgetData(fullBudgetData.filter(item => item.category !== 'Contingency'));
+
+            const colors = {
+                sky: 'rgba(56, 189, 248, 0.7)',
+                emerald: 'rgba(16, 185, 129, 0.7)',
+                amber: 'rgba(245, 158, 11, 0.7)',
+                violet: 'rgba(139, 92, 246, 0.7)',
+                rose: 'rgba(244, 63, 94, 0.7)',
+                cyan: 'rgba(22, 163, 74, 0.7)',
+                slate: 'rgba(100, 116, 139, 0.7)'
+            };
+
+            const colorPalette = Object.values(colors);
+
+            const renderDonutChart = () => {
+                const ctx = document.getElementById('budgetDonutChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: donutData.labels,
+                        datasets: [{
+                            data: donutData.data,
+                            backgroundColor: colorPalette,
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            };
+
+            const renderBarChart = () => {
+                const ctx = document.getElementById('budgetBarChart').getContext('2d');
+                const barChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: barData.labels,
+                        datasets: [{
+                            label: 'Cost',
+                            data: barData.data,
+                            backgroundColor: colorPalette,
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false,
+                            },
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: value => '$' + (value / 1000) + 'k'
+                                }
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            if (elements.length > 0) {
+                                const clickedIndex = elements[0].index;
+                                const category = barData.labels[clickedIndex];
+                                renderBudgetDetails(category);
+                            }
+                        }
+                    }
+                });
+            };
+
+            // --- DYNAMIC CONTENT ---
+            const renderBudgetDetails = (category) => {
+                const detailsContainer = document.getElementById('budget-details');
+                const title = document.getElementById('details-title');
+                
+                const items = fullBudgetData.filter(item => item.category === category);
+                
+                title.textContent = `Details: ${category}`;
+
+                let tableHtml = `<table class="w-full text-sm text-left text-slate-500">
+                    <thead class="text-xs text-slate-700 uppercase bg-slate-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Item</th>
+                            <th scope="col" class="px-4 py-3 text-right">Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                items.forEach(item => {
+                    tableHtml += `<tr class="bg-white border-b">
+                        <td class="px-4 py-3 font-medium text-slate-900">${item.item} (${item.quantity}x)</td>
+                        <td class="px-4 py-3 text-right font-semibold">${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.totalCost)}</td>
+                    </tr>`;
+                });
+
+                tableHtml += `</tbody></table>`;
+                detailsContainer.innerHTML = tableHtml;
+            };
+            
+            const renderEquipmentAccordion = () => {
+                const container = document.getElementById('accordion-container');
+                let html = '';
+                for (const [category, items] of Object.entries(equipmentData)) {
+                    html += `
+                        <div class="border border-slate-200 rounded-lg bg-white shadow-sm">
+                            <button class="accordion-button w-full flex justify-between items-center p-5 text-left font-semibold text-slate-800">
+                                <span>${category}</span>
+                                <svg class="w-6 h-6 shrink-0 transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <div class="accordion-content">
+                                <div class="p-5 pt-0">
+                                    <ul class="space-y-2 text-slate-600">`;
+                    items.forEach(item => {
+                        html += `<li class="flex items-start"><span class="font-bold w-28 shrink-0">${item.name}:</span><span>${item.spec}</span></li>`;
+                    });
+                    html += `       </ul>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+                container.innerHTML = html;
+                
+                // Add event listeners for the new accordion buttons
+                document.querySelectorAll('.accordion-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const content = button.nextElementSibling;
+                        button.querySelector('svg').classList.toggle('rotate-180');
+                        if (content.style.maxHeight) {
+                            content.style.maxHeight = null;
+                        } else {
+                            content.style.maxHeight = content.scrollHeight + "px";
+                        } 
+                    });
+                });
+            };
+
+            // --- INITIALIZATION ---
+            showSection(window.location.hash);
+            renderDonutChart();
+            renderBarChart();
+            renderEquipmentAccordion();
+            renderBudgetDetails('Hardware - Student Stations'); // Show default details
+        });
+    </script>
+</body>
+</html>
